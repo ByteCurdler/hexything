@@ -9,6 +9,9 @@ Cube = namedtuple("Cube", ["x", "y", "z"])
 
 class Point(tuple):
     def __new__(cls, x=0, y=0):
+        """
+        A 2-D point class
+        """
         self = tuple.__new__(cls, (x, y))
         self.x, self.y = x, y
         return self
@@ -87,11 +90,8 @@ class Hex:
         self.x, self.y, self.z = x, y, z
         # self.data = Hex.hex_grid.get_data(self.key())
 
-    def key(self):
-        return "{:+}{:+}{:+}".format(self.x, self.y, self.z)
-
     def __hash__(self):
-        return hash(self.key())
+        return hash("{:+}{:+}{:+}".format(self.x, self.y, self.z))
 
     def __add__(self, other):
         if type(other) is Hex:
@@ -117,25 +117,43 @@ class Hex:
     __repr__ = __str__
 
     def rotate_left(self, n=1):
+        """
+        Rotate hex to the left n times
+        """
         if n > 1:
             return self.rotate_left().rotate_left(n=n-1)
         return Hex(-self.z, -self.x, -self.y)
 
     def rotate_right(self, n=1):
+        """
+        Rotate hex to the right n times
+        """
         if n > 1:
             return self.rotate_right().rotate_right(n=n-1)
         return Hex(-self.y, -self.z, -self.x)
 
     def neighbor(self, direction):
+        """
+        Return the neighbor in the given direction
+        """
         return self + Hex.hex_directions[direction]
 
     def diagonal(self, direction):
+        """
+        Return the neighbor on the given diagonal
+        """
         return self.add(Hex.hex_diagonals[direction])
 
     def magnitude(self):
+        """
+        Return the taxicab distance between this hex and Hex(0, 0, 0)
+        """
         return (abs(self.x) + abs(self.y) + abs(self.z)) // 2
 
     def distance(self, other):
+        """
+        Return the taxicab distance between this hex and other
+        """
         return (self - other).magnitude()
 
     def __eq__(self, other):
@@ -154,6 +172,9 @@ class Hex:
         return Hex(-self.x, -self.y, -self.z)
 
     def __round__(self):
+        """
+        Rounds the hex to the nearest integer hex
+        """
         xi = round(self.x)
         yi = round(self.y)
         zi = round(self.z)
@@ -173,11 +194,18 @@ class Hex:
 
     @classmethod
     def lerp(cls, a, b, t):
+        """
+        Linearly interpolates between a and b
+        t=0 is a, t=1 is b, 0<t<1 is in between
+        """
         return cls(a.x * (1.0 - t) + b.x * t,
                    a.y * (1.0 - t) + b.y * t)
 
     @classmethod
     def linedraw(cls, a, b):
+        """
+        Return the list of the line between a and b
+        """
         N = a.distance(b)
         a_nudge = cls(a.x + 1e-06, a.y + 1e-06)
         b_nudge = cls(b.x + 1e-06, b.y + 1e-06)
@@ -202,20 +230,12 @@ Hex.hex_diagonals = [
     Hex(2, -1, -1),
     Hex(1, -2, 1),
     Hex(-1, -1, 2),
-    Hex(-2, 1, 1),
+    Hex(-2, 1, 1)
 ]
-#
-#
-#
-#
-#
+
 Orientation = namedtuple("Orientation", ["f0", "f1", "f2", "f3",
                                          "b0", "b1", "b2", "b3",
                                          "start_angle"])
-#
-#
-#
-#
 
 
 class Layout:
@@ -234,6 +254,9 @@ class Layout:
         self.orientation, self.size, self.origin = orientation, size, origin
 
     def from_hex(self, hex):
+        """
+        Given a Hex, return the Point on-screen of the center
+        """
         M = self.orientation
         size = self.size
         origin = self.origin
@@ -242,6 +265,9 @@ class Layout:
         return Point(x + origin.x, y + origin.y)
 
     def to_hex(self, pixel):
+        """
+        Given a Point, returns the Hex it belongs to
+        """
         M = self.orientation
         size = self.size
         origin = self.origin
@@ -252,6 +278,12 @@ class Layout:
         return Hex(x, y)
 
     def hex_corner_offset(self, corner, margin=1):
+        """
+        Returns the distance between the center of a hex and corner,
+        shrunken by margin
+        corner=0 is between hex directions 0 and 1
+        A line between corners -1 and 0 would be the edge in hex direction 0
+        """
         M = self.orientation
         size = self.size * margin
         angle = 2.0 * math.pi * (M.start_angle - corner
@@ -259,6 +291,9 @@ class Layout:
         return Point(size.x * math.cos(angle), size.y * math.sin(angle))
 
     def hex_corners(self, hex, margin=1) -> list:
+        """
+        Returns all the corners of hex, shrunken by margin. Useful for drawing.
+        """
         corners = []
         center = self.from_hex(hex)
         for i in range(0, 6):
