@@ -24,20 +24,18 @@ def calculate_field(grid, walls, target):
     while frontier:
         h = frontier.pop(0)
         for i in range(6):
-            dhex = hex.Hex.hex_directions[i]
-            new = h - dhex
+            new = h.neighbor(i-3)
             if (new in grid
                     and field[new] == -1
                     and not walls[new]):
                 field[new] = i
-                frontier.append(new)    # good.
-                # frontier.insert(1, new) # BAD!!!!!!
+                frontier.append(new)
     field[target] = -2
     return field
 
 
 layout = hex.Layout(hex.Layout.pointy, hex.Point(20, 20), hex.Point(0, 0))
-grid = hexgrid.RectangleGrid(25, 25)
+grid = hexgrid.HexagonGrid(12)
 
 bounds = [math.inf, math.inf, -math.inf, -math.inf]
 
@@ -53,7 +51,7 @@ layout.origin = hex.Point(-bounds[0], -bounds[1])
 win = pygame.display.set_mode((int(bounds[2]-bounds[0]),
                                int(bounds[3]-bounds[1])))
 
-mousehex = hex.Hex(0, 0, 0)
+mousehex = hex.Hex(-100, 50, 50)
 
 target = round(layout.to_hex(hex.Point(win.get_width()//2,
                                        win.get_height()//2)))
@@ -72,16 +70,29 @@ def hue_to_rgb(hue, low=0, high=255):
             low+diff*(max(0, min(1, -abs(((hue+5) % 6)-3)+2))))
 
 
+def trace(field, start):
+    if walls[start] or field[start] < 0:
+        return [start, start]
+    ret = [start]
+    pos = start
+    while field[pos] != -2:
+        pos = pos.neighbor(field[pos])
+        ret.append(pos)
+    if len(ret) == 1:
+        ret.extend(ret)
+    return ret
+
+
 ms = 0
 clock = pygame.time.Clock()
 
 COLORS = [
-    (255, 0, 0),
-    (255, 255, 0),
-    (0, 255, 0),
-    (0, 150, 255),
-    (150, 0, 255),
-    (255, 0, 255)
+    (255, 150, 150),
+    (255, 255, 150),
+    (150, 255, 150),
+    (150, 200, 255),
+    (200, 150, 255),
+    (255, 150, 255)
 ]
 
 while True:
@@ -112,11 +123,13 @@ while True:
     win.fill((0, 0, 0))
 
     for h in grid:
-        if walls[h] or field[h] == -2:
+        if walls[h] and field[h] != -2:
             width = 2
         else:
             width = 0
-        if h == mousehex or field[h] == -2:
+        if h == mousehex:
+            color = (200, 200, 255)
+        elif field[h] == -2:
             color = (255, 255, 255)
         elif field[h] == -1:
             color = (127, 127, 127)
@@ -129,7 +142,7 @@ while True:
                             layout.hex_corners(h, margin=0.9), width=width)
         if field[h] >= 0:
             corner = field[h]
-            sin = math.sin(ms/75)
+            sin = math.sin(ms/150+corner*math.pi)
             point1 = (layout.hex_corner_offset(corner+1.75 + sin*0.25,
                                                0.4 + sin*0.1)
                       + layout.from_hex(h))
@@ -140,6 +153,12 @@ while True:
                                                0.5 + sin*0.25)
                       + layout.from_hex(h))
             pygame.draw.aalines(win, (0, 0, 0), True, [point1, point2, point3])
+
+    if mousehex in grid and not walls[mousehex] and field[mousehex] >= 0:
+        # draw line
+        pygame.draw.aalines(win, (0, 0, 0), False,
+                            [layout.from_hex(i)
+                             for i in trace(field, mousehex)])
 
     pygame.display.flip()
     ms += clock.tick()

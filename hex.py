@@ -1,10 +1,55 @@
 #!/usr/bin/env python3
 from collections import namedtuple
 import math
-from pygame import Vector2 as Point
+import numbers
 
 # Point = namedtuple("Point", ["x", "y"])
 Cube = namedtuple("Cube", ["x", "y", "z"])
+
+
+class Point(tuple):
+    def __new__(cls, x=0, y=0):
+        self = tuple.__new__(cls, (x, y))
+        self.x, self.y = x, y
+        return self
+
+    def __add__(self, other):
+        if type(other) is Point:
+            return Point(self.x + other.x, self.y + other.y)
+        elif isinstance(other, numbers.Real):
+            return Point(self.x + other, self.y + other)
+        else:
+            return NotImplemented
+
+    def __sub__(self, other):
+        if type(other) is Point:
+            return Point(self.x - other.x, self.y - other.y)
+        elif isinstance(other, numbers.Real):
+            return Point(self.x - other, self.y - other)
+        else:
+            return NotImplemented
+
+    def __mul__(self, other):
+        if type(other) is Point:
+            return Point(self.x * other.x, self.y * other.y)
+        elif isinstance(other, numbers.Real):
+            return Point(self.x * other, self.y * other)
+        else:
+            return NotImplemented
+
+    def __truediv__(self, other):
+        if type(other) is Point:
+            return Point(self.x / other.x, self.y / other.y)
+        elif isinstance(other, numbers.Real):
+            return Point(self.x / other, self.y / other)
+        else:
+            return NotImplemented
+
+    def __getitem__(self, key):
+        return [self.x, self.y][key]
+
+    def __iter__(self):
+        return iter([self.x, self.y])
 
 
 class Hex:
@@ -50,23 +95,19 @@ class Hex:
 
     def __add__(self, other):
         if type(other) is Hex:
-            return Hex(self.x + other.x, self.y + other.y, self.z + other.z)
-        elif type(other) is int:
-            return Hex(self.x + other, self.y + other, self.z + other)
+            return Hex(self.x + other.x, self.y + other.y)
         else:
             return NotImplemented
 
     def __sub__(self, other):
         if type(other) is Hex:
-            return Hex(self.x - other.x, self.y - other.y, self.z - other.z)
-        elif type(other) is int:
-            return Hex(self.x - other, self.y - other, self.z - other)
+            return Hex(self.x - other.x, self.y - other.y)
         else:
             return NotImplemented
 
-    def __mult__(self, other):
-        if type(other) is int:
-            return Hex(self.x * other, self.y * other, self.z * other)
+    def __mul__(self, other):
+        if isinstance(other, numbers.Real):
+            return Hex(self.x * other, self.y * other)
         else:
             return NotImplemented
 
@@ -109,13 +150,13 @@ class Hex:
         # If two match, the third will too.
         return type(other) is not Hex or self.x != other.x or self.y != other.y
 
-    def __neg__(self, other):
+    def __neg__(self):
         return Hex(-self.x, -self.y, -self.z)
 
     def __round__(self):
-        xi = int(round(self.x))
-        yi = int(round(self.y))
-        zi = int(round(self.z))
+        xi = round(self.x)
+        yi = round(self.y)
+        zi = round(self.z)
         x_diff = abs(xi - self.x)
         y_diff = abs(yi - self.y)
         z_diff = abs(zi - self.z)
@@ -133,8 +174,18 @@ class Hex:
     @classmethod
     def lerp(cls, a, b, t):
         return cls(a.x * (1.0 - t) + b.x * t,
-                   a.y * (1.0 - t) + b.y * t,
-                   a.z * (1.0 - t) + b.z * t)
+                   a.y * (1.0 - t) + b.y * t)
+
+    @classmethod
+    def linedraw(cls, a, b):
+        N = a.distance(b)
+        a_nudge = cls(a.x + 1e-06, a.y + 1e-06)
+        b_nudge = cls(b.x + 1e-06, b.y + 1e-06)
+        results = []
+        step = 1.0 / max(N, 1)
+        for i in range(0, N + 1):
+            results.append(round(cls.lerp(a_nudge, b_nudge, step * i)))
+        return results
 
 
 Hex.hex_directions = [
@@ -153,16 +204,6 @@ Hex.hex_diagonals = [
     Hex(-1, -1, 2),
     Hex(-2, 1, 1),
 ]
-
-# def hex_linedraw(a, b):
-#     N = hex_distance(a, b)
-#     a_nudge = Hex(a.q + 1e-06, a.r + 1e-06, a.s - 2e-06)
-#     b_nudge = Hex(b.q + 1e-06, b.r + 1e-06, b.s - 2e-06)
-#     results = []
-#     step = 1.0 / max(N, 1)
-#     for i in range(0, N + 1):
-#         results.append(hex_round(hex_lerp(a_nudge, b_nudge, step * i)))
-#     return results
 #
 #
 #
@@ -213,10 +254,11 @@ class Layout:
     def hex_corner_offset(self, corner, margin=1):
         M = self.orientation
         size = self.size * margin
-        angle = 2.0 * math.pi * (M.start_angle - corner) / 6.0
+        angle = 2.0 * math.pi * (M.start_angle - corner
+                                 + 1 - self.orientation.start_angle*2) / 6.0
         return Point(size.x * math.cos(angle), size.y * math.sin(angle))
 
-    def hex_corners(self, hex, margin=1):
+    def hex_corners(self, hex, margin=1) -> list:
         corners = []
         center = self.from_hex(hex)
         for i in range(0, 6):
@@ -284,12 +326,13 @@ if __name__ == "__main__":
                         a.z * 0.25 + b.z * 0.25 + c.z * 0.5)))
     #
 
-    # def test_hex_linedraw():
-    #     equal_hex_array("hex_linedraw", [Hex(0, 0, 0), Hex(0, -1, 1),
-    #                                      Hex(0, -2, 2), Hex(1, -3, 2),
-    #                                      Hex(1, -4, 3), Hex(1, -5, 4)],
-    #                     hex_linedraw(Hex(0, 0, 0), Hex(1, -5, 4)))
+    def test_hex_linedraw():
+        equal("hex_linedraw", [Hex(0, 0, 0), Hex(0, -1, 1),
+                               Hex(0, -2, 2), Hex(1, -3, 2),
+                               Hex(1, -4, 3), Hex(1, -5, 4)],
+              Hex.linedraw(Hex(0, 0, 0), Hex(1, -5, 4)))
     #
+
     def test_layout():
         h = Hex(3, 4, -7)
         flat = Layout(Layout.flat, Point(10.0, 15.0), Point(35.0, 71.0))
@@ -366,7 +409,7 @@ if __name__ == "__main__":
         test_hex_distance()
         test_hex_rotate()
         test_hex_round()
-        # test_hex_linedraw()
+        test_hex_linedraw()
         test_layout()
         # test_offset_roundtrip()
         # test_offset_from_cube()

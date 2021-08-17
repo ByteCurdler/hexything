@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import hex
+import random
 
 
 class Grid:
@@ -22,6 +23,9 @@ class Grid:
         Returns an iterable looping through all hexes in this grid
         """
         return []
+
+    def random(self) -> hex.Hex:
+        return random.choice(list(self))
 
 
 class RectangleGrid(Grid):
@@ -55,6 +59,7 @@ class HexagonGrid(Grid):
     def __init__(self, radius):
         self.radius = radius
         self.diameter = radius*2 - 1
+        self.center = hex.Hex(radius-1, radius-1)
 
     def valid(self, hex):
         return (hex.y in range(self.diameter)
