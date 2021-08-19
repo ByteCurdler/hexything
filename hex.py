@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from collections import namedtuple
+from collections import namedtuple, abc
 import math
 import numbers
 
@@ -12,6 +12,12 @@ class Point(tuple):
         """
         A 2-D point class
         """
+        if isinstance(x, numbers.Real) and isinstance(y, numbers.Real):
+            pass
+        elif isinstance(x, abc.Iterable) and y == 0:
+            x, y = x
+        else:
+            raise ValueError(f"Cannot use {x=} and {y=} as a Point")
         self = tuple.__new__(cls, (x, y))
         self.x, self.y = x, y
         return self
@@ -53,6 +59,9 @@ class Point(tuple):
 
     def __iter__(self):
         return iter([self.x, self.y])
+
+    def __round__(self):
+        return Point(round(self.x), round(self.y))
 
 
 class Hex:
@@ -162,7 +171,7 @@ class Hex:
 
     def __bool__(self):
         # If two are zero, the third will be too.
-        return self.x or self.y
+        return self.x != 0 or self.y != 0
 
     def __ne__(self, other):
         # If two match, the third will too.

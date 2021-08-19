@@ -30,8 +30,9 @@ line = Hex.linedraw(start, end)
 
 FONT = pygame.font.SysFont(None, 20)
 
+dirty = True
+
 while True:
-    changed = False
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -41,31 +42,32 @@ while True:
             lb, mb, rb = pygame.mouse.get_pressed()
             if lb:
                 start = mousehex
-                changed = True
+                dirty = True
             if mb:
                 pass
             if rb:
                 end = mousehex
-                changed = True
-    if changed:
+                dirty = True
+    if dirty:
+        dirty = False
         line = Hex.linedraw(start, end)
 
-    win.fill((0, 0, 0))
+        win.fill((0, 0, 0))
 
-    for h in line + [start, end]:
-        if h == start:
-            color = (255, 0, 0)
-        elif h == end:
-            color = (0, 0, 255)
-        elif h in line:
-            color = (150, 0, 255)
-        else:
-            color = (150, 150, 150)
-        pygame.draw.polygon(win, color,
-                            layout.hex_corners(h, 1))
-        pygame.draw.polygon(win, [i//2 for i in color],
-                            layout.hex_corners(h, 1), width=2)
-    pygame.draw.aaline(win, (255, 255, 255),
-                       layout.from_hex(start), layout.from_hex(end))
+        for h in line + [start, end]:
+            if h == start:
+                color = (255, 0, 0)
+            elif h == end:
+                color = (0, 255, 255)
+            elif h in line:
+                color = (150, 0, 255)
+            else:
+                color = (150, 150, 150)
+            pygame.draw.polygon(win, [i//2 for i in color],
+                                layout.hex_corners(h, 1))
+            pygame.draw.polygon(win, color,
+                                layout.hex_corners(h, 0.75))
+        # pygame.draw.aaline(win, (255, 255, 255),
+        #                    layout.from_hex(start), layout.from_hex(end))
 
-    pygame.display.flip()
+        pygame.display.flip()
