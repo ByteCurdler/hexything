@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-import hex
-import hexgrid
-import pygame
 import sys
-import math
+import os
+sys.path.append(os.curdir)
+sys.path.append(os.pardir)
+sys.path.append(os.pardir + os.sep + os.pardir)
+
+if True:  # satisfy auto-formatter
+    import hex
+    from hex import hexgrid
+    import pygame
+    import math
 
 try:
     from better_exceptions import behook
@@ -15,7 +21,7 @@ pygame.init()
 pygame.font.init()
 
 layout = hex.Layout(hex.Layout.pointy, hex.Point(15, 15), hex.Point(0, 0))
-grid = hexgrid.HexagonGrid(10)
+grid = hexgrid.HexagonGrid(20)
 
 bounds = [math.inf, math.inf, -math.inf, -math.inf]
 
@@ -41,6 +47,8 @@ tail = [head]
 length = 3
 
 food = grid.random()
+
+clock = pygame.time.Clock()
 
 movement_text = "XDWQAZ"
 movement = [
@@ -71,7 +79,6 @@ movement = [
     pygame.K_a,
     pygame.K_z
 ]
-
 movement_text = "369741"
 movement = [
     pygame.K_KP_3,
@@ -83,38 +90,21 @@ movement = [
 ]
 
 
-def ai():
-    visited = [head]
-    frontier = [(new, i, [new]) for i in range(6)
-                if (i+3) % 6 != dir and (new := head.neighbor(i)) not in tail]
-    done = 0
-    while frontier and frontier[0][0] != food:
-        item = frontier.pop(0)
-        for i in range(6):
-            new = item[0].neighbor(i)
-            if (new in grid and new not in visited
-                    and new not in tail[len(item[2]):]
-                    + item[2][min(0, len(item[2]))-length:]):
-                visited.append(new)
-                frontier.append((new, item[1], item[2] + [new]))
-        done += 1
-    if frontier:
-        return frontier[0][1]
-    else:
-        return dir
-
-
 FONT = pygame.font.Font(None, int(min(layout.size)))
 
 while True:
     # Input
+    original_dir = dir
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key in movement:
+                tmp = movement.index(event.key)
+                if (tmp+3) % 6 != original_dir:
+                    dir = tmp
     # Logic
-
-    dir = ai()
 
     head = head.neighbor(dir)
     if head in tail or head not in grid:
@@ -122,10 +112,7 @@ while True:
     tail.append(head)
     if head == food:
         length += 1
-        while True:
-            food = grid.random()
-            if food not in tail:
-                break
+        food = grid.random()
     if len(tail) > length:
         tail = tail[1:]
 
@@ -144,7 +131,16 @@ while True:
         pygame.draw.polygon(win, (0, 0, 0),
                             layout.hex_corners(h), width=2)
 
+    for i in range(6):
+        target = head.neighbor(i)
+        if target in grid:
+            text = FONT.render(movement_text[i], True, (255, 255, 255))
+            rect = text.get_rect()
+            rect.center = layout.from_hex(target)
+            win.blit(text, rect.topleft)
+
     pygame.display.flip()
+    clock.tick(5)
 
 pygame.quit()
 sys.exit()

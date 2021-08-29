@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-from hex import Hex, Layout, Point
-import hexgrid
-import pygame
 import sys
-import math
+import os
+sys.path.append(os.curdir)
+sys.path.append(os.pardir)
+sys.path.append(os.pardir + os.sep + os.pardir)
+
+if True:  # satisfy auto-formatter
+    from hex import Hex, Layout, Point
+    import pygame
+    import math
 
 try:
     from better_exceptions import behook

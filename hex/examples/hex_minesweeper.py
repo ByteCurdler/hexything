@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
-import hex
-import hexgrid
-import pygame
 import sys
-import math
+import os
+sys.path.append(os.curdir)
+sys.path.append(os.pardir)
+sys.path.append(os.pardir + os.sep + os.pardir)
+
+if True:  # satisfy auto-formatter
+    import hex
+    from hex import hexgrid
+    import pygame
+    import sys
+    import math
 
 try:
     from better_exceptions import behook
@@ -13,7 +20,7 @@ except ImportError:
 
 pygame.init()
 
-layout = hex.Layout(hex.Layout.pointy, hex.Point(15, 15), hex.Point(0, 0))
+layout = hex.Layout(hex.Layout.pointy, hex.Point(30, 15), hex.Point(0, 0))
 grid = hexgrid.HexagonGrid(16)
 NUM_MINES = len(list(grid))//10
 
@@ -80,7 +87,7 @@ paused = False
 
 changed = True
 
-FONT = pygame.font.SysFont(None, int(max(layout.size)*1.3))
+FONT = pygame.font.SysFont(None, int(min(layout.size)*1.3))
 
 TEXT_COLOR = [
     "zero",

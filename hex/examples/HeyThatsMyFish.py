@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-import hex
-import hexgrid
-import pygame
 import sys
-import math
-import random
+import os
+sys.path.append(os.curdir)
+sys.path.append(os.pardir)
+sys.path.append(os.pardir + os.sep + os.pardir)
+
+if True:  # satisfy auto-formatter
+    import hex
+    from hex import hexgrid
+    import pygame
+    import math
+    import random
 
 try:
     from better_exceptions import behook

@@ -60,8 +60,16 @@ class Point(tuple):
     def __iter__(self):
         return iter([self.x, self.y])
 
+    def __neg__(self):
+        return Point(-self.x, -self.y)
+
     def __round__(self):
         return Point(round(self.x), round(self.y))
+
+    def __str__(self):
+        return f"Point({self.x}, {self.y})"
+
+    __repr__ = __str__
 
 
 class Hex:
@@ -117,6 +125,12 @@ class Hex:
     def __mul__(self, other):
         if isinstance(other, numbers.Real):
             return Hex(self.x * other, self.y * other)
+        else:
+            return NotImplemented
+
+    def __truediv__(self, other):
+        if isinstance(other, numbers.Real):
+            return Hex(self.x / other, self.y / other)
         else:
             return NotImplemented
 
@@ -259,18 +273,21 @@ class Layout:
                        -1.0 / 3.0, math.sqrt(3.0) / 3.0,
                        0.0)
 
-    def __init__(self, orientation, size, origin=Point(0, 0)):
-        self.orientation, self.size, self.origin = orientation, size, origin
+    def __init__(self, orientation, scale,
+                 origin=Point(0, 0), size=Point(800, 800)):
+        self.orientation, self.scale, self.origin, self.size = (
+            orientation, scale, origin, size
+        )
 
     def from_hex(self, hex):
         """
         Given a Hex, return the Point on-screen of the center
         """
         M = self.orientation
-        size = self.size
+        scale = self.scale
         origin = self.origin
-        x = (M.f0 * hex.x + M.f1 * hex.y) * size.x
-        y = (M.f2 * hex.x + M.f3 * hex.y) * size.y
+        x = (M.f0 * hex.x + M.f1 * hex.y) * scale.x
+        y = (M.f2 * hex.x + M.f3 * hex.y) * scale.y
         return Point(x + origin.x, y + origin.y)
 
     def to_hex(self, pixel):
@@ -278,10 +295,10 @@ class Layout:
         Given a Point, returns the Hex it belongs to
         """
         M = self.orientation
-        size = self.size
+        scale = self.scale
         origin = self.origin
-        pt = Point((pixel.x - origin.x) / size.x,
-                   (pixel.y - origin.y) / size.y)
+        pt = Point((pixel.x - origin.x) / scale.x,
+                   (pixel.y - origin.y) / scale.y)
         x = M.b0 * pt.x + M.b1 * pt.y
         y = M.b2 * pt.x + M.b3 * pt.y
         return Hex(x, y)
@@ -294,21 +311,42 @@ class Layout:
         A line between corners -1 and 0 would be the edge in hex direction 0
         """
         M = self.orientation
-        size = self.size * margin
-        angle = 2.0 * math.pi * (M.start_angle - corner
-                                 + 1 - self.orientation.start_angle*2) / 6.0
-        return Point(size.x * math.cos(angle), size.y * math.sin(angle))
+        scale = self.scale * margin
+        angle = 2.0 * math.pi * (-M.start_angle - corner
+                                 + 1) / 6.0
+        return Point(scale.x * math.cos(angle), scale.y * math.sin(angle))
 
     def hex_corners(self, hex, margin=1) -> list:
         """
         Returns all the corners of hex, shrunken by margin. Useful for drawing.
         """
-        corners = []
         center = self.from_hex(hex)
-        for i in range(0, 6):
-            offset = self.hex_corner_offset(i, margin)
-            corners.append(Point(center.x + offset.x, center.y + offset.y))
-        return corners
+        return [center + self.hex_corner_offset(i, margin)
+                for i in range(6)]
+
+    def __str__(self):
+        orientation = self.orientation
+        if orientation == self.pointy:
+            orientation = "Layout.pointy"
+        elif orientation == self.flat:
+            orientation = "Layout.flat"
+        return f"Layout({orientation}, {self.scale}, {self.origin})"
+
+    def onscreen_hex(self, hex):
+        """
+        Given a Hex, return whether the hex might be on-screen
+        """
+        corners = self.hex_corners(hex)
+        return (
+            corners[1].x > 0
+            and corners[5].y > 0
+            and corners[4].x < self.size.x
+            and corners[2].y < self.size.y
+        )
+
+    __contains__ = onscreen_hex
+
+    __repr__ = __str__
 #
 #
 #
